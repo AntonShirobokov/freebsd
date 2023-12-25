@@ -1,0 +1,107 @@
+#include "mainwindow.h"
+#include <QGridLayout>
+#include <QDebug>
+#include <QTime>
+
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    setupGame();
+}
+
+MainWindow::~MainWindow() {}
+
+void MainWindow::setupGame() {
+    centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    QGridLayout *gridLayout = new QGridLayout(centralWidget);
+    gridLayout->setSpacing(2);
+
+    srand(static_cast<unsigned>(time(nullptr)));
+
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            tiles[i][j] = new QPushButton(QString::number(i * gridSize + j + 1));
+            gridLayout->addWidget(tiles[i][j], i, j);
+            connect(tiles[i][j], &QPushButton::clicked, this, &MainWindow::buttonClicked);
+        }
+    }
+
+    emptyRow = gridSize - 1;
+    emptyCol = gridSize - 1;
+    tiles[emptyRow][emptyCol]->setText("");
+    shuffleTiles();
+}
+
+void MainWindow::shuffleTiles() {
+    const int shuffleSteps = 100;
+    for (int i = 0; i < shuffleSteps; ++i) {
+        int randDir = rand() % 4;
+        int newRow = emptyRow;
+        int newCol = emptyCol;
+
+        if (randDir == 0 && newRow > 0) { // Up
+            newRow--;
+        } else if (randDir == 1 && newRow < gridSize - 1) { // Down
+            newRow++;
+        } else if (randDir == 2 && newCol > 0) { // Left
+            newCol--;
+        } else if (randDir == 3 && newCol < gridSize - 1) { // Right
+            newCol++;
+        }
+
+        tiles[emptyRow][emptyCol]->setText(tiles[newRow][newCol]->text());
+        tiles[newRow][newCol]->setText("");
+        emptyRow = newRow;
+        emptyCol = newCol;
+    }
+}
+
+void MainWindow::buttonClicked() {
+    QPushButton *clickedButton = qobject_cast<QPushButton *>(sender());
+    int row, col;
+
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            if (tiles[i][j] == clickedButton) {
+                row = i;
+                col = j;
+                break;
+            }
+        }
+    }
+
+    if ((row == emptyRow && qAbs(col - emptyCol) == 1) || (col == emptyCol && qAbs(row - emptyRow) == 1)) {
+        tiles[emptyRow][emptyCol]->setText(clickedButton->text());
+        clickedButton->setText("");
+        emptyRow = row;
+        emptyCol = col;
+    }
+
+    updateTiles();
+}
+
+void MainWindow::updateTiles() {
+    bool solved = true;
+    int count = 1;
+
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            if (i == gridSize - 1 && j == gridSize - 1) {
+                break;
+            }
+
+            if (tiles[i][j]->text() != QString::number(count++)) {
+                solved = false;
+                break;
+            }
+        }
+        if (!solved) {
+            break;
+        }
+    }
+
+    if (solved) {
+        qDebug() << "Congratulations! You solved the puzzle!";
+        // Add your code for winning the game here
+    }
+}
